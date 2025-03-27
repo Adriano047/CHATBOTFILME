@@ -1,151 +1,52 @@
 import streamlit as st
-import pandas as pd
-import math
-from pathlib import Path
+from openai import OpenAI
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+#Alterando o titulo da pagina
+st.set_page_config(page_title="CineGuru", page_icon="🎬")
+
+
+# Importação correta da biblioteca OpenAI
+client = OpenAI(api_key=st.secrets["openai"]["OPENAI_API_KEY"])  
+
+system_mensagem = {
+    "role": "system",
+    "content": "Você é um chatbot especializado exclusivamente em filmes e séries. **NÃO** deve responder perguntas sobre outros assuntos. Se perguntarem algo fora desse tema, apenas diga: 'Desculpe, sou um CHATBOT focado em falar sobre filmes e séries.'. Exceto se a pergunta for uma saudação, nesse caso, complete sua resposta com: 'Com qual filme e série você escolherá hoje?' e utilize o idioma do usuário. Quando perguntarem sobre filmes ou séries, você pode recomendar algo."
+}
+# Configuração da chave da API OpenAI
+st.title("CineGuru")
+# Definir um modelo padrão
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-3.5-turbo"
+
+# Inicializar histórico de mensagens
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Exibir as mensagens do histórico do chat
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Aceitar entrada do usuário
+if prompt := st.chat_input("Faça uma Pergunta relacionado a filmes e series"):
+    # Adicionar mensagem do usuário ao histórico
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    # Exibir a mensagem do usuário na interface
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Enviar mensagem para o modelo OpenAI
+    response = client.chat.completions.create(
+    model=st.session_state["openai_model"],
+    messages=[
+        system_mensagem,  # Inclui a mensagem do sistema primeiro
+        *st.session_state.messages  # Desempacota as mensagens do usuário e do assistente
+    ]
 )
+    # Obter a resposta do assistente e exibir
+    assistant_message = response.choices[0].message.content
+    st.session_state.messages.append({"role": "assistant", "content": assistant_message})
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
-
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
-
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
-
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
-
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
-
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
-
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
-
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+    # Exibir a resposta do assistente
+    with st.chat_message("assistant"):
+        st.markdown(assistant_message)
