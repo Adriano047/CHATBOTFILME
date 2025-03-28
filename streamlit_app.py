@@ -10,7 +10,7 @@ client = OpenAI(api_key=st.secrets["openai"]["OPENAI_API_KEY"])
 
 system_mensagem = {
     "role": "system",
-    "content": "Você é um chatbot especializado exclusivamente em filmes e séries. **NÃO** deve responder perguntas sobre outros assuntos. Se perguntarem algo fora desse tema, apenas diga: 'Desculpe, sou um CHATBOT focado em falar sobre filmes e séries.'. Exceto se a pergunta for uma saudação, nesse caso, complete sua resposta com: 'Com qual filme e série você escolherá hoje?' e utilize o idioma do usuário. Quando perguntarem sobre filmes ou séries, você pode recomendar algo."
+    "content": "Você é um chatbot especializado exclusivamente em filmes e séries. **NÃO** deve responder perguntas sobre outros assuntos. Se perguntarem algo fora desse tema, apenas diga: 'Desculpe, sou um CHATBOT focado em falar sobre filmes e séries.'. Exceto se a pergunta for uma saudação, nesse caso, complete sua resposta com: 'Qual filme ou série você escolherá hoje?' e utilize o idioma do usuário. Quando perguntarem sobre filmes ou séries, você pode recomendar algo."
 }
 # Configuração da chave da API OpenAI
 st.title("CineGuru")
