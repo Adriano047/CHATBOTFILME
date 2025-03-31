@@ -23,7 +23,7 @@ Um chatbot desenvolvido com a interface intuitiva do Streamlit, integrado à pod
 ![Respostas](https://github.com/user-attachments/assets/265e3a95-0b46-4cf3-8c00-bc7ce14b0ec7)
 
 ### Codigo que restringe o conteudo:
-![CodigoRestrincao](https://github.com/user-attachments/assets/8ad5077a-32f4-4f57-8867-ccb3e2683253)
+![CodigoDeRestricao](https://github.com/user-attachments/assets/75d71ab1-e5cf-4203-b086-21b5a8901237)
 
 ## 💻 Rodando o Programa
 https://github.com/user-attachments/assets/298b7638-6843-49a5-a6ce-10fcc26c2796
